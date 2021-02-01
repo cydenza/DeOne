@@ -12,6 +12,9 @@ class Variable:
         self.creator = func
 
     def backward(self):
+        if self.grad is None:
+            self.grad = np.ones_like(self.data)
+
         funcs = [self.creator]
         while funcs:
             f = funcs.pop()
@@ -85,17 +88,7 @@ x = Variable(np.array(0.5))
 dy = numerical_diff(f, x)
 print(dy)
 
-#A = Square()
-#B = Exp()
-#C = Square()
 x = Variable(np.array(0.5))
-#a = A(x)
-#b = B(a)
-#y = C(b)
-a = square(x)
-b = exp(a)
-y = square(b)
-
-y.grad = np.array(1.0)
+y = square(exp(square(x)))
 y.backward()
 print(x.grad)

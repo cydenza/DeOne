@@ -6,17 +6,20 @@ class Variable:
     def __init__(self, data):
         self.data = data
         self.grad = None
-        self.creater = None
+        self.creator = None
 
     def set_creater(self, func):
-        self.creater = func
+        self.creator = func
 
     def backward(self):
-        f = self.creater
-        if f is not None:
-            x = f.input
-            x.grad = f.backward(self.grad)
-            x.backward()
+        funcs = [self.creator]
+        while funcs:
+            f = funcs.pop()
+            x, y = f.input, f.output
+            x.grad = f.backward(y.grad)
+
+            if x.creator is not None:
+                funcs.append(x.creator)
 
 class Function:
     def __call__(self, input):
@@ -86,15 +89,15 @@ y.grad = np.array(1.0)
 #b.grad = C.backward(y.grad)
 #a.grad = B.backward(b.grad)
 #x.grad = A.backward(a.grad)
-C = y.creater
+C = y.creator
 b = C.input
 b.grad = C.backward(y.grad)
 
-B = b.creater
+B = b.creator
 a = B.input
 a.grad = B.backward(b.grad)
 
-A = a.creater
+A = a.creator
 x = A.input
 x.grad = A.backward(a.grad)
 print(x.grad)

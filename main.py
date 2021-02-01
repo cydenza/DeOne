@@ -68,6 +68,14 @@ def f(x):
     C = Square()
     return C(B(A(x)))
 
+def square(x):
+    f = Square()
+    return f(x)
+
+def exp(x):
+    f = Exp()
+    return f(x)
+
 x = Variable(np.array(0.5))
 dy = numerical_diff(f, x)
 print(dy)
@@ -77,30 +85,16 @@ x = Variable(np.array(0.5))
 dy = numerical_diff(f, x)
 print(dy)
 
-A = Square()
-B = Exp()
-C = Square()
+#A = Square()
+#B = Exp()
+#C = Square()
 x = Variable(np.array(0.5))
-a = A(x)
-b = B(a)
-y = C(b)
-
-y.grad = np.array(1.0)
-#b.grad = C.backward(y.grad)
-#a.grad = B.backward(b.grad)
-#x.grad = A.backward(a.grad)
-C = y.creator
-b = C.input
-b.grad = C.backward(y.grad)
-
-B = b.creator
-a = B.input
-a.grad = B.backward(b.grad)
-
-A = a.creator
-x = A.input
-x.grad = A.backward(a.grad)
-print(x.grad)
+#a = A(x)
+#b = B(a)
+#y = C(b)
+a = square(x)
+b = exp(a)
+y = square(b)
 
 y.grad = np.array(1.0)
 y.backward()

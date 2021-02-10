@@ -1,9 +1,13 @@
 # Press Shift+F10 to execute it or replace it with your code.
 # Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
 import numpy as np
+import unittest
 
 class Variable:
     def __init__(self, data):
+        if data is not None:
+            if not isinstance(data, np.ndarray):
+                raise TypeError('{}은 지원하지 않습니다.'.format(type(data)))
         self.data = data
         self.grad = None
         self.creator = None
@@ -28,7 +32,7 @@ class Function:
     def __call__(self, input):
         x = input.data
         y = self.forward(x)
-        output = Variable(y)
+        output = Variable(as_array(y))
         output.set_creater(self)
         self.input = input
         self.output = output
@@ -79,14 +83,19 @@ def exp(x):
     f = Exp()
     return f(x)
 
-x = Variable(np.array(0.5))
-dy = numerical_diff(f, x)
-print(dy)
+def as_array(x):
+    if np.isscalar(x):
+        return np.array(x)
+    return x
 
-f = Square()
 x = Variable(np.array(0.5))
-dy = numerical_diff(f, x)
-print(dy)
+#dy = numerical_diff(f, x)
+#print(dy)
+
+#f = Square()
+#x = Variable(np.array(0.5))
+#dy = numerical_diff(f, x)
+#print(dy)
 
 x = Variable(np.array(0.5))
 y = square(exp(square(x)))

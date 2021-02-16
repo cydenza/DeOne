@@ -22,34 +22,51 @@ class Variable:
         funcs = [self.creator]
         while funcs:
             f = funcs.pop()
-            x, y = f.input, f.output
-            x.grad = f.backward(y.grad)
+            gys = [output.grad for output in f.outputs]
+            gxs = f.backward(*gys)
+            if not isinstance(gxs, tuple):
+                gxs = (gxs,)
 
-            if x.creator is not None:
-                funcs.append(x.creator)
+            for x, gx in zip(f.inputs, gxs):
+                x.grad = gx
+
+                if x.creator is not None:
+                    funcs.append(x.creator)
 
 class Function:
-    def __call__(self, input):
-        x = input.data
-        y = self.forward(x)
-        output = Variable(as_array(y))
-        output.set_creater(self)
-        self.input = input
-        self.output = output
-        return output
+    def __call__(self, *inputs):
+        xs = [x.data for x in inputs]
+        ys = self.forward(*xs)
+        if not isinstance(ys, tuple):
+            ys = (ys,)
+        outputs = [Variable(as_array(y)) for y in ys]
 
-    def forward(self, x):
+        for output in outputs:
+            output.set_creater(self)
+        self.inputs = inputs
+        self.outputs = outputs
+        return outputs if len(outputs) > 1 else outputs[0]
+
+    def forward(self, xs):
         raise NotImplementedError()
+
+    def backward(self, gys):
+        raise NotImplementedError()
+
+class Add(Function):
+    def forward(self, x0, x1):
+        y = x0 + x1
+        return y
 
     def backward(self, gy):
-        raise NotImplementedError()
+        return gy, gy
 
 class Square(Function):
     def forward(self, x):
         return x ** 2
 
     def backward(self, gy):
-        x = self.input.data
+        x = self.inputs[0].data
         gx = 2 * x * gy
         return gx
 
@@ -88,6 +105,9 @@ def as_array(x):
         return np.array(x)
     return x
 
+def add(x0, x1):
+    return Add()(x0, x1)
+
 x = Variable(np.array(0.5))
 #dy = numerical_diff(f, x)
 #print(dy)
@@ -97,7 +117,42 @@ x = Variable(np.array(0.5))
 #dy = numerical_diff(f, x)
 #print(dy)
 
-x = Variable(np.array(0.5))
-y = square(exp(square(x)))
-y.backward()
+x = Variable(np.array(2.0))
+y = Variable(np.array(3.0))
+z = add(square(x), square(y))
+z.backward()
+print(z.data)
 print(x.grad)
+print(y.grad)
+
+x0 = Variable(np.array(2))
+x1 = Variable(np.array(3))
+y = add(x0, x1)
+print(y.data)
+
+"""
+class SquareTest(unittest.TestCase):
+    def test_forward(self):
+        x = Variable(np.array(2.0))
+        y = square(x)
+        expected = np.array(4.0)
+        self.assertEqual(y.data, expected)
+
+    def test_backward(self):
+        x = Variable(np.array(3.0))
+        y = square(x)
+        y.backward()
+        expected = np.array(6.0)
+        self.assertEqual(x.grad, expected)
+
+    def test_gradient_check(self):
+        x = Variable(np.random.rand(1))
+        y = square(x)
+        y.backward()
+        num_grad = numerical_diff(square, x)
+        flg = np.allclose(x.grad, num_grad)
+        self.assertTrue(flg)
+
+if __name__ == '__main__':
+    unittest.main()
+"""

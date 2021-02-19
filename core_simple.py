@@ -2,17 +2,42 @@
 # Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
 import numpy as np
 import weakref
+import contextlib
 import unittest
 
+class Config:
+    enable_backprop = True
+
 class Variable:
-    def __init__(self, data):
+    __array_priority__ = 200
+
+    def __init__(self, data, name=None):
         if data is not None:
             if not isinstance(data, np.ndarray):
                 raise TypeError('{}은 지원하지 않습니다.'.format(type(data)))
         self.data = data
+        self.name = name
         self.grad = None
         self.creator = None
         self.generation = 0
+
+    @property
+    def shape(self):
+        return self.data.shape
+
+    @property
+    def ndim(self):
+        return self.data.ndim
+
+    @property
+    def size(self):
+        return self.data.size
+    @property
+    def dtype(self):
+        return self.data.dtype
+
+    def __len__(self):
+        return len(self.data)
 
     def set_creater(self, func):
         self.creator = func
@@ -56,19 +81,34 @@ class Variable:
                 for y in f.outputs:
                     y().grad = None
 
+    """ mul
+    def __mul__(self, other):
+        return mul(self, other)
+    """
+
+    def __repr__(self):
+        if self.data is None:
+            return 'variable(None)'
+        p = str(self.data).replace('\n', '\n' + ' ' * 9)
+        return 'variable(' + p + ')'
+
 class Function:
     def __call__(self, *inputs):
+        inputs = [as_variable(x) for x in inputs]
+        
         xs = [x.data for x in inputs]
         ys = self.forward(*xs)
         if not isinstance(ys, tuple):
             ys = (ys,)
         outputs = [Variable(as_array(y)) for y in ys]
 
-        self.generation = max([x.generation for x in inputs])
-        for output in outputs:
-            output.set_creater(self)
-        self.inputs = inputs
-        self.outputs = [weakref.ref(output) for output in outputs]
+        if Config.enable_backprop:
+            self.generation = max([x.generation for x in inputs])
+            for output in outputs:
+                output.set_creater(self)
+            self.inputs = inputs
+            self.outputs = [weakref.ref(output) for output in outputs]
+
         return outputs if len(outputs) > 1 else outputs[0]
 
     def forward(self, xs):
@@ -103,6 +143,15 @@ class Exp(Function):
         gx = np.exp(x) * gy
         return gx
 
+class Mul(Function):
+    def forward(self, x0, x1):
+        y = x0 * x1
+        return y
+
+    def backward(self, gy):
+        x0, x1 = self.inputs[0].data, self.inputs[1].data
+        return gy * x1, gy * x0
+
 def numerical_diff(f, x, eps=1e-4):
     x0 = Variable(x.data - eps)
     x1 = Variable(x.data + eps)
@@ -130,7 +179,105 @@ def as_array(x):
     return x
 
 def add(x0, x1):
+    x1 = as_array(x1)
     return Add()(x0, x1)
+
+def mul(x0, x1):
+    return Mul()(x0, x1)
+
+Variable.__add__ = add
+Variable.__radd__ = add
+Variable.__mul__ = mul
+Variable.__rmul__ = mul
+
+@contextlib.contextmanager
+def using_config(name, value):
+    old_value = getattr(Config, name)
+    setattr(Config, name, value)
+    try:
+        yield
+    finally:
+        setattr(Config, name, old_value)
+
+def no_grad():
+    return using_config('enable_backprop', False)
+
+def as_variable(obj):
+    if isinstance(obj, Variable):
+        return obj
+    return Variable(obj)
+
+class Neg(Function):
+    def forward(self, x):
+        return -x
+
+    def backward(self, gy):
+        return -gy
+
+def neg(x):
+    return Neg()(x)
+
+Variable.__neg__ = neg
+
+class Sub(Function):
+    def forward(self, x0, x1):
+        y = x0 - x1
+        return y
+
+    def backward(self, gy):
+        return gy, -gy
+
+def sub(x0, x1):
+    x1 = as_array(x1)
+    return Sub()(x0, x1)
+
+def rsub(x0, x1):
+    x1 = as_array(x1)
+    return Sub()(x1, x0)
+
+Variable.__sub__ = sub
+Variable.__rsub__ = rsub
+
+class Div(Function):
+    def forward(self, x0, x1):
+        y = x0 / x1
+        return y
+
+    def backward(self, gy):
+        x0, x1 = self.inputs[0].data, self.inputs[1].data
+        gx0 = gy / x1
+        gx1 = gy * (-x0 / x1 ** 2)
+        return gx0, gx1
+
+def div(x0, x1):
+    x1 = as_array(x1)
+    return Div()(x0, x1)
+
+def rdiv(x0, x1):
+    x1 = as_array(x1)
+    return Div()(x1, x0)
+
+Variable.__div__ = div
+Variable.__rdiv__ = rdiv
+
+class Pow(Function):
+    def __init__(self, c):
+        self.c = c
+
+    def forward(self, x):
+        y = x ** self.c
+        return y
+
+    def backward(self, gy):
+        x = self.inputs[0].data
+        c = self.c
+        gx = c * x ** (c - 1) * gy
+        return gx
+
+def pow(x, c):
+    return Pow(c)(x)
+
+Variable.__pow__ = pow
 
 #x = Variable(np.array(0.5))
 #dy = numerical_diff(f, x)
@@ -151,7 +298,9 @@ print(y.grad)
 """
 x0 = Variable(np.array(2))
 x1 = Variable(np.array(3))
-y = add(x1, x1)
+y = np.array(4.0) * x0 * x1 + np.array(2.0)
+print(y.data)
+y = x0 ** 3
 print(y.data)
 
 y.backward()
@@ -161,6 +310,9 @@ for i in range(10):
     x = Variable(np.random.randn(10000))
     y = square(square(square(x)))
 
+with no_grad():
+    x = Variable(np.array(2.0))
+    y = square(x)
 
 """
 class SquareTest(unittest.TestCase):

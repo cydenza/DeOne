@@ -1,6 +1,6 @@
 from unittest import TestCase
 import unittest
-import main
+import core_simple
 
 class SquareTest(TestCase):
     def test_square(self):

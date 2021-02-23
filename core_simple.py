@@ -5,6 +5,19 @@ import weakref
 import contextlib
 import unittest
 
+def setup_variable():
+    Variable.__add__ = add
+    Variable.__radd__ = add
+    Variable.__mul__ = mul
+    Variable.__rmul__ = mul
+    Variable.__neg__ = neg
+    Variable.__sub__ = sub
+    Variable.__rsub__ = rsub
+    Variable.__div__ = div
+    Variable.__rdiv__ = rdiv
+    Variable.__pow__ = pow
+
+
 class Config:
     enable_backprop = True
 
@@ -185,11 +198,6 @@ def add(x0, x1):
 def mul(x0, x1):
     return Mul()(x0, x1)
 
-Variable.__add__ = add
-Variable.__radd__ = add
-Variable.__mul__ = mul
-Variable.__rmul__ = mul
-
 @contextlib.contextmanager
 def using_config(name, value):
     old_value = getattr(Config, name)
@@ -217,8 +225,6 @@ class Neg(Function):
 def neg(x):
     return Neg()(x)
 
-Variable.__neg__ = neg
-
 class Sub(Function):
     def forward(self, x0, x1):
         y = x0 - x1
@@ -234,9 +240,6 @@ def sub(x0, x1):
 def rsub(x0, x1):
     x1 = as_array(x1)
     return Sub()(x1, x0)
-
-Variable.__sub__ = sub
-Variable.__rsub__ = rsub
 
 class Div(Function):
     def forward(self, x0, x1):
@@ -257,9 +260,6 @@ def rdiv(x0, x1):
     x1 = as_array(x1)
     return Div()(x1, x0)
 
-Variable.__div__ = div
-Variable.__rdiv__ = rdiv
-
 class Pow(Function):
     def __init__(self, c):
         self.c = c
@@ -277,8 +277,6 @@ class Pow(Function):
 def pow(x, c):
     return Pow(c)(x)
 
-Variable.__pow__ = pow
-
 #x = Variable(np.array(0.5))
 #dy = numerical_diff(f, x)
 #print(dy)
@@ -295,7 +293,7 @@ z.backward()
 print(z.data)
 print(x.grad)
 print(y.grad)
-"""
+
 x0 = Variable(np.array(2))
 x1 = Variable(np.array(3))
 y = np.array(4.0) * x0 * x1 + np.array(2.0)
@@ -313,6 +311,7 @@ for i in range(10):
 with no_grad():
     x = Variable(np.array(2.0))
     y = square(x)
+"""
 
 """
 class SquareTest(unittest.TestCase):

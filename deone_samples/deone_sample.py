@@ -5,6 +5,7 @@ import sys
 print("------start--------")
 sys.path.append("C:/Users/cyden/PycharmProjects/")
 sys.path.append("D:/")
+sys.path.append("/Users/leekangkern/PycharmProjects/")
 print(sys.path)
 
 from deone.core_simple import Variable

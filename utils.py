@@ -45,7 +45,7 @@ def get_dot_graph(output, verbose=True):
                 add_func(x.creator)
     return 'digraph g {\n' + txt + '}'
 
-def plot_dot_graph(output, verbose=True, to_file='graph.png')
+def plot_dot_graph(output, verbose=True, to_file='graph.png'):
     dot_graph = get_dot_graph(output, verbose)
 
     tmp_dir = os.path.join(os.path.expanduser('~'), '.deone')

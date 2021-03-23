@@ -1,5 +1,12 @@
-import numpy as np
 import sys
+
+print("------start--------")
+sys.path.append("C:/Users/cyden/PycharmProjects/")
+sys.path.append("D:/")
+sys.path.append("/Users/leekangkern/PycharmProjects/")
+print(sys.path)
+
+import numpy as np
 import deone.utils as utils
 from deone import Function
 from deone import Variable
@@ -14,11 +21,6 @@ from deone.layers import Layer
 import math
 import matplotlib.pyplot as plt
 
-print("------start--------")
-sys.path.append("C:/Users/cyden/PycharmProjects/")
-sys.path.append("D:/")
-sys.path.append("/Users/leekangkern/PycharmProjects/")
-print(sys.path)
 
 def sphere(x, y):
     z = x ** 2 + y ** 2

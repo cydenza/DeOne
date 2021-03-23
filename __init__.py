@@ -1,5 +1,5 @@
 print("__init__")
-is_simple_core = True
+is_simple_core = False  #True
 
 if is_simple_core:
     from deone.core_simple import Variable
@@ -17,5 +17,6 @@ else:
     from deone.core import as_array
     from deone.core import as_variable
     from deone.core import setup_variable
+    from deone.core import Parameter
 
 setup_variable()

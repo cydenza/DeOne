@@ -19,4 +19,8 @@ else:
     from deone.core import setup_variable
     from deone.core import Parameter
 
+from deone.layers import Layer
+from deone.models import Model
+from deone.models import MLP
+
 setup_variable()

@@ -1,5 +1,6 @@
 import os
 import subprocess
+import cuda
 
 def _dot_var(v, verbose=False):
     dot_var = '{} [label="{}", color=orange, style=filled]\n'
@@ -82,3 +83,13 @@ def sum_to(x, shape):
     if lead > 0:
         y = y.squeeze(lead_axis)
     return y
+
+def logsumexp(x, axis=1):
+    xp = cuda.get_array_module(x)
+    m = x.max(axis=axis, keepdims=True)
+    y = x - m
+    xp.exp(y, out=y)
+    s = y.sum(axis=axis, keepdims=True)
+    xp.log(s, out=s)
+    m += s
+    return m

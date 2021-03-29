@@ -18,6 +18,7 @@ else:
     from deone.core import as_variable
     from deone.core import setup_variable
     from deone.core import Parameter
+    from deone.core import exp
 
 from deone.layers import Layer
 from deone.models import Model

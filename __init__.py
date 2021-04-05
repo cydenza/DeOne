@@ -23,5 +23,16 @@ else:
 from deone.layers import Layer
 from deone.models import Model
 from deone.models import MLP
+import deone.datasets
+import deone.dataloaders
+import deone.optimizers
+import deone.functions
+#import deone.functions_conv
+import deone.layers
+import deone.utils
+import deone.cuda
+import deone.transforms
 
 setup_variable()
+
+from deone.core import test_mode

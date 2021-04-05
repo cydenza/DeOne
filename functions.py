@@ -1,8 +1,11 @@
 import numpy as np
 from deone.core import Function
+from deone.core import Variable
 from deone.core import as_variable
+from deone.core import as_array
 import deone.utils as utils
 import cuda
+import deone
 
 class Sum(Function):
     def __init__(self, axis, keepdims):
@@ -26,7 +29,8 @@ def sum(x, axis=None, keepdims=False):
 
 class Sin(Function):
     def forward(self, x):
-        y = np.sin(x)
+        xp = cuda.get_array_module(x)
+        y = xp.sin(x)
         return y
 
     def backward(self, gy):
@@ -431,3 +435,24 @@ def softmax_simple(x, axis=1):
     y = exp(x)
     sum_y = sum(y, axis=axis, keepdims=True)
     return y / sum_y
+
+def accuracy(y, t):
+    y, t = as_variable(y), as_variable(t)
+
+    pred = y.data.argmax(axis=1).reshape(t.shape)
+    result = (pred == t.data)
+    acc = result.mean()
+    return Variable(as_array(acc))
+
+def dropout(x, dropout_ratio=0.7):
+    x = as_variable(x)
+
+    if deone.core.Config.train:
+        xp = cuda.get_array_module(x)
+        mask = xp.random.rand(*x.shape) > dropout_ratio
+        print(mask)
+        scale = xp.array(1.0 - dropout_ratio).astype(x.dtype)
+        y = x * mask / scale
+        return y
+    else:
+        return x

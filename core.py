@@ -24,13 +24,21 @@ def setup_variable():
 
 class Config:
     enable_backprop = True
+    train = True
+
+
+try:
+    import cupy
+    array_types = (np.ndarray, cupy.ndarray)
+except ImportError:
+    array_types = (np.ndarray)
 
 class Variable:
     __array_priority__ = 200
 
     def __init__(self, data, name=None):
         if data is not None:
-            if not isinstance(data, np.ndarray):
+            if not isinstance(data, array_types):
                 raise TypeError('{}은 지원하지 않습니다.'.format(type(data)))
         self.data = data
         self.name = name
@@ -65,7 +73,8 @@ class Variable:
 
     def backward(self, retain_grad=False, create_graph=False):
         if self.grad is None:
-            self.grad = Variable(np.ones_like(self.data))
+            xp = deone.cuda.get_array_module(self.data)
+            self.grad = Variable(xp.ones_like(self.data))
 
         funcs = []
         seen_set = set()
@@ -119,6 +128,14 @@ class Variable:
 
     def sum(self, axis=None, keepdims=False):
         return deone.functions.sum(self, axis, keepdims)
+
+    def to_cpu(self):
+        if self.data is not None:
+            self.data = deone.cuda.as_numpy(self.data)
+
+    def to_gpu(self):
+        if self.data is not None:
+            self.data = deone.cuda.as_cupy(self.data)
 
     def __repr__(self):
         if self.data is None:
@@ -217,19 +234,17 @@ def exp(x):
     f = Exp()
     return f(x)
 
-def as_array(x):
+def as_array(x, array_module=np):
     if np.isscalar(x):
-        return np.array(x)
+        return array_module.array(x)
     return x
 
 def add(x0, x1):
-    x0 = as_array(x0)
-    x1 = as_array(x1)
+    x1 = as_array(x1, deone.cuda.get_array_module(x0.data))
     return Add()(x0, x1)
 
 def mul(x0, x1):
-    x0 = as_array(x0)
-    x1 = as_array(x1)
+    x1 = as_array(x1, deone.cuda.get_array_module(x0.data))
     return Mul()(x0, x1)
 
 @contextlib.contextmanager
@@ -240,6 +255,9 @@ def using_config(name, value):
         yield
     finally:
         setattr(Config, name, old_value)
+
+def test_mode():
+    return using_config('train', False)
 
 def no_grad():
     return using_config('enable_backprop', False)

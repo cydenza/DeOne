@@ -158,37 +158,72 @@ loss = F.softmax_cross_entropy_simple(y, t)
 print(loss)
 """
 
+from deone.datasets import Spiral
+from deone.dataloaders import DataLoader
+
+x = np.ones(5)
+print(x)
+
+y = F.dropout(x)
+print(y)
+
+with deone.core.test_mode():
+    y = F.dropout(x)
+    print(y)
+
+quit()
+
+
+train_set = deone.datasets.MNIST(train=True, transform=None)
+test_set = deone.datasets.MNIST(train=False, transform=None)
+
+print(train_set)
+print(test_set)
+
+#quit()
 max_epoch = 300
-batch_size = 30
+batch_size = 10
 hidden_size = 10
 lr = 1.0
 
-x, t = deone.datasets.get_spiral(train=True)
-print(len(x))
-print(len(t))
-model = MLP((hidden_size, 3))
+#train_set = deone.datasets.Spiral()
+train_set = Spiral(train=True)
+test_set = Spiral(train=False)
+
+train_loader = DataLoader(train_set, batch_size)
+test_loader = DataLoader(test_set, batch_size, shuffle=False)
+
+model = MLP((hidden_size, 10))
 optimizer = optimizers.SGD(lr).setup(model)
 
-data_size = len(x)
+data_size = len(train_set)
 max_iter = math.ceil(data_size / batch_size)
 
 for epoch in range(max_epoch):
     index = np.random.permutation(data_size)
-    sum_loss = 0
+    sum_loss, sum_acc = 0, 0
 
-    for i in range(max_iter):
-        batch_index = index[i * batch_size:(i + 1) * batch_size]
-        batch_x = x[batch_index]
-        batch_t = t[batch_index]
-        print(batch_index)
-        print(batch_t)
-
-        y = model(batch_x)
-        loss = F.softmax_cross_entropy(y, batch_t)
+    for x, t in train_loader:
+        y = model(x)
+        loss = F.softmax_cross_entropy(y, t)
+        acc = F.accuracy(y, t)
         model.cleargrads()
         loss.backward()
         optimizer.update()
-        sum_loss += float(loss.data) * len(batch_t)
+        sum_loss += float(loss.data) * len(t)
+        sum_acc += float(acc.data) * len(t)
 
-    avg_loss = sum_loss / data_size
-    print('epoch %d, loss %.2f' % (epoch + 1, avg_loss))
+    print('epoch : {}'.format(epoch+1))
+    print('train loss : {:.4f}, accuracy : {:.4f}'.format(sum_loss / len(train_set),
+                                                          sum_acc / len(train_set)))
+
+    sum_loss, sum_acc = 0,0
+    with deone.no_grad():
+        for x, t in test_loader:
+            y = model(x)
+            loss = F.softmax_cross_entropy(y, t)
+            acc = F.accuracy(y, t)
+            sum_loss += float(loss.data) * len(t)
+            sum_acc += float(acc.data) * len(t)
+    print('test loss : {:.4f}, accuracy : {:.4f}'.format(sum_loss / len(train_set),
+                                                          sum_acc / len(train_set)))

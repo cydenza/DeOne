@@ -456,3 +456,12 @@ def dropout(x, dropout_ratio=0.7):
         return y
     else:
         return x
+
+#from deone.functions_conv import conv2d
+#from deone.functions_conv import deconv2d
+#from deone.functions_conv import conv2d_simple
+from deone.functions_conv import im2col
+from deone.functions_conv import col2im
+#from deone.functions_conv import pooling_simple
+#from deone.functions_conv import pooling
+#from deone.functions_conv import average_pooling

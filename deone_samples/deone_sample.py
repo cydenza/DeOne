@@ -158,6 +158,15 @@ loss = F.softmax_cross_entropy_simple(y, t)
 print(loss)
 """
 
+x = np.random.rand(1, 3, 7, 7)
+#print(x.shape)
+#print(x)
+
+col1 = F.im2col(x, kernel_size=5, stride=1, pad=0, to_matrix=True)
+print(col1.shape)
+print(col1)
+quit()
+
 from deone.datasets import Spiral
 from deone.dataloaders import DataLoader
 
